@@ -8,7 +8,7 @@ class Logger:
 
     @classmethod
     def log_info(self, message):
-        print('green')
+        print(message)
 
     @classmethod
     def init_import_bar(self, num_of_tables: int):

@@ -39,8 +39,8 @@ class MYSQL:
         result = {}
         table_names = self.cursor.fetchall()
         for (table_name, ) in table_names:
-            #name = table_name.decode()
-            result[table_name] = self.get_table_fields(table_name)
+            name = table_name.decode()
+            result[name] = self.get_table_fields(name)
         return result
 
     def get_tables_and_fields(self, tables_names: tuple) -> dict:
