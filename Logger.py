@@ -1,4 +1,3 @@
-from termcolor import colored
 from progress.bar import Bar
 
 
@@ -9,7 +8,7 @@ class Logger:
 
     @classmethod
     def log_info(self, message):
-        print(colored(message, 'green'))
+        print('green')
 
     @classmethod
     def init_import_bar(self, num_of_tables: int):
