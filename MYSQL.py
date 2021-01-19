@@ -6,6 +6,7 @@ class MYSQL:
     DB_PASSWORD = "absurdH5+PRO"
     DB_NAME = "td"
     AUTH_PLUGIN = "mysql_native_password"
+    CHUNK_SIZE = 1000
     
     def __init__(self):
         self.connection = mysql.connector.connect(
@@ -54,7 +55,10 @@ class MYSQL:
         result = {}
         table_names = self.cursor.fetchall()
         for (table_name, ) in table_names:
-            name = table_name.decode()
+            try:
+                name = table_name.decode()
+            except Exception:
+                name = table_name
             result[name] = self.get_table_fields(name)
         del result[self.translations_table_name]
         return result
@@ -75,7 +79,13 @@ class MYSQL:
                              'ru_translation':ru_translation,
                              'table_name':table_name})
         return self.cursor.fetchall()
+
+    def chunk(self, data, chunk_size):
+        for i in range(0, len(data), chunk_size):
+            yield data[i:i + chunk_size]
     
     def push_translations(self, table_name, translations):
-        self.cursor.executemany(f"INSERT into {table_name} VALUES (%s, %s, %s)", translations)
-        self.connection.commit()
+        chunked_translations = self.chunk(translations, self.CHUNK_SIZE)
+        for chunk in chunked_translations:
+            self.cursor.executemany(f"INSERT into {table_name} VALUES (%s, %s, %s)", chunk)
+            self.connection.commit()
