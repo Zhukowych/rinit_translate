@@ -21,8 +21,10 @@ class MYSQL:
         self.connection.set_charset_collation('utf8', 'utf8_general_ci')
         self.cursor = self.connection.cursor(buffered=True)
         self.cursor.execute("SET NAMES UTF8")
+        self.translations_table_name = None
     
-    def create_or_truncate_translations_table(self, translation_table_name: str):
+    def create_or_truncate_translations_table(self, translation_table_name: str, todo_table_name: str):
+        self.translations_table_name = translation_table_name
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS %s (
                                 `table` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
                                 `uk` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
@@ -32,6 +34,19 @@ class MYSQL:
                                 KEY `ru` (`ru`) 
                             ) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci""" % translation_table_name)
         self.cursor.execute("TRUNCATE TABLE %s" % translation_table_name)
+        self.cursor.execute("""CREATE TABLE IF NOT EXISTS %s (
+                        `table` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+                        `uk` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+                        `ru` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL, 
+                        KEY `table` (`table`),
+                        KEY `uk` (`uk`), 
+                        KEY `ru` (`ru`) 
+                    ) DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci""" % todo_table_name)
+        self.cursor.execute("TRUNCATE TABLE %s" % todo_table_name)
+
+    def get_all_translations(self):
+        self.cursor.execute("SELECT * FROM translations")
+        return self.cursor.fetchall()
 
 
     def get_all_tables_and_fields(self) -> dict:
@@ -41,6 +56,7 @@ class MYSQL:
         for (table_name, ) in table_names:
             name = table_name.decode()
             result[name] = self.get_table_fields(name)
+        del result[self.translations_table_name]
         return result
 
     def get_tables_and_fields(self, tables_names: tuple) -> dict:
@@ -50,16 +66,16 @@ class MYSQL:
         return result
 
     def get_table_fields(self, table_name: str) -> list:
-        self.cursor.execute("show columns from %s" % table_name)
+        self.cursor.execute(f"show columns from {table_name} WHERE field LIKE '%uk' OR field LIKE '%ru'")
         return [column[0] for column in self.cursor.fetchall()]
 
-    def get_translations_pairs(self, table_name, uk_translation, ru_translation) -> list:
-        self.cursor.execute("SELECT DISTINCT %(uk_translation)s, %(ru_translation)s FROM %(table_name)s WHERE %(uk_translation)s!=''" %
+    def get_translations_from_table(self, table_name, uk_translation, ru_translation) -> list:
+        self.cursor.execute("SELECT '%(table_name)s' as tablename, %(uk_translation)s, %(ru_translation)s FROM %(table_name)s WHERE %(uk_translation)s!='' GROUP BY %(uk_translation)s, %(ru_translation)s" %
                             {'uk_translation': uk_translation,
                              'ru_translation':ru_translation,
                              'table_name':table_name})
         return self.cursor.fetchall()
     
-    def push_translations(self, translations):
-        self.cursor.executemany("INSERT into translations VALUES (%s, %s, %s)", translations)
+    def push_translations(self, table_name, translations):
+        self.cursor.executemany(f"INSERT into {table_name} VALUES (%s, %s, %s)", translations)
         self.connection.commit()
