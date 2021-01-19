@@ -2,7 +2,7 @@
 <p>Script for creating translation table from tables in database. In this script finds in database's tables columns with language identiffers, such as "uk" either "ru"
 and creates unique translations. In this versions only 'ua' amd 'ru' are maintained</p>
 <h3>Usage</h3>
-See requirements.txt and install python packages listed there.
+See <a href="https://github.com/Zhukowych/rinit_translate/blob/main/requirements.txt">requirements.txt</a> and install python packages listed there.
 <br>
 <code>python3 main.py -table_name '<table to export>' [-import_tables '<tables to import>'] [--all-tables] [--unaccept_eng]</code><br>
 <ul>
